@@ -1,4 +1,4 @@
-const L = require('./_lib'), { E } = L;
+const L = require('./_lib'), { E } = L, mk = () => 'ASP-' + Array.from({ length: 6 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[require('crypto').randomInt(32)]).join('');
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
     if (!L.same((req.query && req.query.key) || '', E.ADMIN_SECRET || 'x')) return L.send(res, 401, {});
