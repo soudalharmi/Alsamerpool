@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
   }
   if (!L.authed(req)) return L.send(res, 401, { error: 'auth' });
   const up = (id, o) => L.sb('bookings?id=eq.' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(o) });
-  if (a == 'list') { await L.expire(); const r = await L.sb('bookings?select=*&order=created_at.desc&limit=200'); return L.send(res, 200, { rows: r.data, pricing: await L.pricing() }) }
+  if (a == 'list') { await require('./_sync')(); await L.expire(); const r = await L.sb('bookings?select=*&order=created_at.desc&limit=200'); return L.send(res, 200, { rows: r.data, pricing: await L.pricing() }) }
   if (a == 'block') { const r = await L.sb('bookings', { method: 'POST', body: JSON.stringify({ status: 'blocked', check_in: b.f, check_out: L.add(b.t, 1), note: b.note || '' }) }); return L.send(res, r.ok ? 200 : 409, { ok: r.ok }) }
   if (a == 'cancel') { await up(b.id, { status: 'cancelled' }); return L.send(res, 200, { ok: 1 }) } // also unblocks blocked dates
   if (a == 'refund') { // returns the security deposit after check-out
