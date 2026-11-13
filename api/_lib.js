@@ -15,7 +15,7 @@ const quote = (p, i, o) => {
   const n = []; for (let d = i; d < o && n.length < 60; d = add(d, 1)) n.push(d);
   if (!n.length || (n.some(d => dow(d) == 5 || dow(d) == 6) && n.length < 2)) return { err: 'min' };
   const rent = n.reduce((s, d) => { const x = (p.seasons || []).find(z => d >= z.f && d <= z.t); return s + (x ? x.p : (dow(d) == 5 || dow(d) == 6 ? p.we : p.w)) }, 0);
-  return { rent, deposit: p.deposit, total: rent + p.deposit };
+  return { rent, deposit: 0, total: rent };
 };
 const send = (r, c, o) => { r.statusCode = c; r.setHeader('Content-Type', 'application/json'); r.end(JSON.stringify(o)) };
 const expire = () => sb('bookings?status=eq.pending&expires_at=lt.' + new Date().toISOString(), { method: 'PATCH', body: JSON.stringify({ status: 'expired' }) });
