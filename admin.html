@@ -7,9 +7,10 @@
 <div class="c"><b>Special dates (holidays, National Day, New Year...)</b><br><small>These prices replace the normal price for every night from the first to the last night.</small><br>
 <input id="sn" placeholder="Name, e.g. National Day"><input id="sf" type="date"><input id="st" type="date"><input id="sp" type="number" placeholder="AED per night"><button onclick="as()">Add</button><div id="sx"></div></div>
 <div class="c"><b>Block nights</b> (first night to last night)<br><input id="bf" type="date"><input id="bt" type="date"><input id="bn" placeholder="Note"><button onclick="bk()">Block</button></div>
+<div class="c"><b>Photos</b><br><small>The first photo is the main picture at the top of the site. Photos are resized automatically.</small><br><input type="file" id="pf" accept="image/*" multiple><select id="pc"><option value="pool">Pool</option><option value="outdoor">Outdoors</option><option value="inside">Inside</option><option value="kids">Kids</option></select><button onclick="upl()">Upload</button> <small id="pm"></small><div id="pl"></div></div>
 <div class="c"><b>Bookings</b><br><input id="q" placeholder="Search name, phone or confirmation number" size="32" oninput="dr()"><select id="f" onchange="dr()"><option value="all">All</option><option value="confirmed">Confirmed</option><option value="pending">Pending</option><option value="cancelled">Cancelled</option><option value="blocked">Blocked</option></select> <small id="cnt"></small><table id="t"></table></div></div>
 <script>
-let T=sessionStorage.t||'',PR,R=[];const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let T=sessionStorage.t||'',PR,R=[],PH=[];const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const api=async b=>{try{const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+T},body:JSON.stringify(b)});if(r.status==401&&b.a!='login'){sessionStorage.t='';location.reload()}return await r.json()}catch(x){alert('Server problem');return{err:1}}};
 $('lf').onsubmit=async e=>{e.preventDefault();const j=await api({a:'login',email:$('e').value,password:$('p').value});if(j.token){T=sessionStorage.t=j.token;ld()}else if(!j.err)alert('Incorrect email or password')};
 const sm=s=>s=='paid'||s=='completed'?'confirmed':s=='cancelled'||s=='expired'?'cancelled':s;
@@ -18,10 +19,17 @@ function dr(){const q=$('q').value.trim().toLowerCase(),qd=q.replace(/\D/g,''),f
 const rows=R.filter(r=>(f=='all'||sm(r.status)==f)&&(!q||[r.name,r.phone,r.ref,r.note].some(x=>String(x||'').toLowerCase().includes(q))||(qd.length>3&&String(r.phone||'').replace(/\D/g,'').includes(qd))));
 $('cnt').textContent=rows.length+' shown';
 $('t').innerHTML='<tr><td>Ref<td>Status<td>Guest<td>Dates<td>Total<td></tr>'+rows.map(r=>`<tr><td>${esc(r.ref||'')}<td class="s-${sm(r.status)}">${sm(r.status)}<td>${esc(r.name||r.note||'')} ${esc(r.phone||'')}<td>${r.check_in} to ${r.check_out}<td>${r.total||''}<td>${['paid','blocked','pending'].includes(r.status)?`<button onclick="cn('${r.id}')">Cancel</button>`:''}</tr>`).join('')}
-async function ld(){const j=await api({a:'list'});if(!j.rows)return;$('lf').hidden=true;$('app').hidden=false;PR=j.pricing;R=j.rows;$('w').value=PR.w;$('we').value=PR.we;rs();dr()}
+async function ld(){const j=await api({a:'list'});if(!j.rows)return;$('lf').hidden=true;$('app').hidden=false;PR=j.pricing;R=j.rows;$('w').value=PR.w;$('we').value=PR.we;rs();dr();PH=Array.isArray(j.photos)?j.photos:[];rp()}
 async function sv(){PR.w=$('w').value;PR.we=$('we').value;PR.deposit=0;PR.seasons=PR.seasons||[];await api({a:'price',p:PR});rs();alert('Saved')}
 async function as(){const f=$('sf').value,t=$('st').value,p=+$('sp').value;if(!f||!t||!p||t<f)return alert('Enter the dates (first night to last night) and the price');(PR.seasons=PR.seasons||[]).push({l:$('sn').value||'Special dates',f,t,p});await sv();$('sn').value=$('sf').value=$('st').value=$('sp').value=''}
 async function ds(i){if(confirm('Delete this special price?')){PR.seasons.splice(i,1);await sv()}}
 async function cn(id){if(confirm('Cancel / unblock these dates?')){await api({a:'cancel',id});ld()}}
 async function bk(){const j=await api({a:'block',f:$('bf').value,t:$('bt').value,note:$('bn').value});alert(j.ok?'Blocked':'Dates overlap another booking');ld()}
+const rz=f=>new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.8).split(',')[1])};im.onerror=no;im.src=URL.createObjectURL(f)});
+async function upl(){const fs=[...$('pf').files];if(!fs.length)return alert('Choose photos first');for(let i=0;i<fs.length;i++){$('pm').textContent='Uploading '+(i+1)+' of '+fs.length+'...';try{const j=await api({a:'photo_add',data:await rz(fs[i]),cat:$('pc').value});if(!j.ok)alert('Upload failed for photo '+(i+1)+(j.error?': '+j.error:''))}catch(e){alert('Could not read photo '+(i+1))}}$('pm').textContent='Done';$('pf').value='';ld()}
+const CT=[['pool','Pool'],['outdoor','Outdoors'],['inside','Inside'],['kids','Kids']];
+function rp(){$('pl').innerHTML=PH.map(p=>`<div class="r"><img src="${esc(p.url)}" style="height:60px;border-radius:8px;vertical-align:middle"> <select onchange="pc2('${p.id}',this.value)">${CT.map(c=>`<option value="${c[0]}" ${p.cat==c[0]?'selected':''}>${c[1]}</option>`).join('')}</select><button onclick="pmv('${p.id}','up')">Up</button><button onclick="pmv('${p.id}','down')">Down</button><button onclick="pdl('${p.id}')">Delete</button></div>`).join('')||'<small>No photos uploaded yet. The site shows its built-in photos until you upload your own.</small>'}
+async function pc2(id,cat){await api({a:'photo_cat',id,cat});ld()}
+async function pmv(id,dir){await api({a:'photo_move',id,dir});ld()}
+async function pdl(id){if(confirm('Delete this photo?')){await api({a:'photo_del',id});ld()}}
 if(T)ld();</script></body></html>

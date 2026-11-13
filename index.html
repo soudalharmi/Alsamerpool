@@ -90,7 +90,7 @@ function rs(){const c=check(),e=$('sum');if(c.e){e.className='sum';e.textContent
 function rp(){}function rpx(){const t=T[L];$('pl').innerHTML=`<div class="pc"><small>${t.wd}</small><b>${fmt(S.w)}</b><small>${t.per}</small></div><div class="pc"><small>${t.we}</small><b>${fmt(S.we)}</b><small>${t.per}</small></div>`+(S.seasons.length?`<div class="pc"><small>${t.seas}</small>${S.seasons.map(s=>`<p>${esc(s.l)}: <b style="font-size:22px;display:inline">${fmt(s.p)}</b><br><small>${fd(s.f)} → ${fd(s.t)}</small></p>`).join('')}</div>`:'');$('pf').innerHTML=[t.f1,t.f2(S.late),t.f3,t.f4].map(x=>`<li>${x}</li>`).join('')}
 const fd=s=>new Intl.DateTimeFormat(loc(),{day:'numeric',month:'short'}).format(pd(s));
 const gl=()=>G.filter(g=>cat=='all'||g[1]==cat);
-function rg(){const l=gl();gi=Math.min(gi,l.length-1);$('gm').src=l[gi][0];const th=$('gth');th.innerHTML='';l.forEach((g,i)=>{const m=new Image();m.src=g[0];m.alt='';if(i==gi)m.className='on';m.onclick=()=>{gi=i;rg()};th.appendChild(m)});$('chips').innerHTML=Object.keys(T[L].cats).map(k=>`<button type="button" data-c="${k}" class="${k==cat?'on':''}">${T[L].cats[k]}</button>`).join('')}
+function rg(){const l=gl();if(!l.length){cat='all';return rg()}gi=Math.min(gi,l.length-1);$('gm').src=l[gi][0];const th=$('gth');th.innerHTML='';l.forEach((g,i)=>{const m=new Image();m.src=g[0];m.alt='';if(i==gi)m.className='on';m.onclick=()=>{gi=i;rg()};th.appendChild(m)});$('chips').innerHTML=Object.keys(T[L].cats).filter(k=>k=='all'||G.some(g=>g[1]==k)).map(k=>`<button type="button" data-c="${k}" class="${k==cat?'on':''}">${T[L].cats[k]}</button>`).join('')}
 function tr(){document.documentElement.lang=L;document.documentElement.dir=L=='ar'?'rtl':'ltr';document.querySelectorAll('[data-i]').forEach(e=>e.textContent=T[L][e.dataset.i]);$('lang').textContent=L=='ar'?'English':'العربية';$('fl').innerHTML=T[L].fl.map(f=>`<div class="fc"><span></span><h3>${f[1]}</h3><p>${f[2]}</p></div>`).join('');rp();rg();rs()}
 $('lang').onclick=()=>{L=L=='ar'?'en':'ar';try{localStorage.setItem('l',L)}catch(e){}tr()};
 $('cg').onclick=e=>{const b=e.target.closest('button[data-d]');if(!b)return;const d=b.dataset.d;if(!sel.i||sel.o||d<=sel.i){sel.i=d;sel.o=''}else sel.o=d;rs()};
@@ -103,10 +103,10 @@ $('chips').onclick=e=>{const b=e.target.closest('button');if(b){cat=b.dataset.c;
 const lbs=d=>{const l=gl();gi=(gi+d+l.length)%l.length;$('li2').src=l[gi][0];rg()};
 $('gm').onclick=()=>{$('li2').src=gl()[gi][0];$('lb').classList.add('on')};$('lx').onclick=()=>$('lb').classList.remove('on');$('lp').onclick=()=>lbs(L=='ar'?1:-1);$('ln').onclick=()=>lbs(L=='ar'?-1:1);
 addEventListener('keydown',e=>{if(!$('lb').classList.contains('on'))return;if(e.key=='Escape')$('lb').classList.remove('on');if(e.key=='ArrowRight')lbs(1);if(e.key=='ArrowLeft')lbs(-1)});
-const hs=[0,3,1].map(k=>{const i=new Image();i.src=G[k][0];i.alt='';$('top').prepend(i);return i}),hl=hs.length;let hk=0;hs[0].classList.add('on');setInterval(()=>{hs[hk].classList.remove('on');hk=(hk+1)%hl;hs[hk].classList.add('on')},6000);
+let hs=[],hl=0,hk=0;function hr(){hs.forEach(i=>i.remove());hs=[...new Set([0,3,1].map(k=>Math.min(k,G.length-1)))].map(k=>{const i=new Image();i.src=G[k][0];i.alt='';$('top').prepend(i);return i});hl=hs.length;hk=0;hs[0].classList.add('on')}hr();setInterval(()=>{if(hl<2)return;hs[hk].classList.remove('on');hk=(hk+1)%hl;hs[hk].classList.add('on')},6000);
 $('li').src=G[5][0];
 const io=new IntersectionObserver(a=>a.forEach(x=>x.isIntersecting&&x.target.classList.add('in')),{threshold:.08});document.querySelectorAll('.rv').forEach(e=>io.observe(e));
 tr();
-fetch('/api/availability').then(r=>r.json()).then(a=>{S.blocked=a.busy.map(b=>({f:b[0],t:add(b[1],-1)}));Object.assign(S,a.pricing);rs()}).catch(()=>{});
+fetch('/api/availability').then(r=>r.json()).then(a=>{S.blocked=a.busy.map(b=>({f:b[0],t:add(b[1],-1)}));Object.assign(S,a.pricing);if(a.photos&&a.photos.length){G.length=0;a.photos.forEach(p=>G.push([p.url,p.cat]));hr();$('li').src=G[Math.min(5,G.length-1)][0];gi=0;rg()}rs()}).catch(()=>{});
 if(/[?&]paid=/.test(location.search))setTimeout(()=>alert(L=='ar'?'شكرًا لك! يتم تأكيد الدفع وسنتواصل معك عبر واتساب.':'Thank you! Your payment is being confirmed and we will message you on WhatsApp.'),500);
 </script></body></html>
