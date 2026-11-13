@@ -1,5 +1,5 @@
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin | Al Samer Pool</title>
-<style>body{font:15px system-ui;background:#FFF9F0;color:#3B322B;margin:0;padding:16px;max-width:900px;margin:auto}input,button{font:inherit;padding:8px;margin:3px;border:1px solid #ddd;border-radius:8px}button{background:#12968F;color:#fff;border:0;cursor:pointer}.c{background:#fff;border:1px solid #F1E4D0;border-radius:12px;padding:12px;margin:10px 0;overflow-x:auto}td{padding:4px 8px;border-bottom:1px solid #F1E4D0;font-size:13px}.r{padding:6px 0;border-bottom:1px solid #F1E4D0}</style></head><body>
+<style>body{font:15px system-ui;background:#FFF9F0;color:#3B322B;margin:0;padding:16px;max-width:900px;margin:auto}input,button,select{font:inherit;padding:8px;margin:3px;border:1px solid #ddd;border-radius:8px}button{background:#12968F;color:#fff;border:0;cursor:pointer}.c{background:#fff;border:1px solid #F1E4D0;border-radius:12px;padding:12px;margin:10px 0;overflow-x:auto}td{padding:4px 8px;border-bottom:1px solid #F1E4D0;font-size:13px}.r{padding:6px 0;border-bottom:1px solid #F1E4D0}.s-confirmed{color:#2E9D63;font-weight:600}.s-pending{color:#B7791F;font-weight:600}.s-cancelled{color:#B4443C}</style></head><body>
 <h2>Al Samer Pool - Admin</h2>
 <form id="lf" class="c"><input id="e" type="email" placeholder="Email" required><input id="p" type="password" placeholder="Password" required><button>Log in</button></form>
 <div id="app" hidden>
@@ -7,14 +7,18 @@
 <div class="c"><b>Special dates (holidays, National Day, New Year...)</b><br><small>These prices replace the normal price for every night from the first to the last night.</small><br>
 <input id="sn" placeholder="Name, e.g. National Day"><input id="sf" type="date"><input id="st" type="date"><input id="sp" type="number" placeholder="AED per night"><button onclick="as()">Add</button><div id="sx"></div></div>
 <div class="c"><b>Block nights</b> (first night to last night)<br><input id="bf" type="date"><input id="bt" type="date"><input id="bn" placeholder="Note"><button onclick="bk()">Block</button></div>
-<div class="c"><b>Bookings</b><table id="t"></table></div></div>
+<div class="c"><b>Bookings</b><br><input id="q" placeholder="Search name, phone or confirmation number" size="32" oninput="dr()"><select id="f" onchange="dr()"><option value="all">All</option><option value="confirmed">Confirmed</option><option value="pending">Pending</option><option value="cancelled">Cancelled</option><option value="blocked">Blocked</option></select> <small id="cnt"></small><table id="t"></table></div></div>
 <script>
-let T=sessionStorage.t||'',PR;const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let T=sessionStorage.t||'',PR,R=[];const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const api=async b=>{try{const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+T},body:JSON.stringify(b)});if(r.status==401&&b.a!='login'){sessionStorage.t='';location.reload()}return await r.json()}catch(x){alert('Server problem');return{err:1}}};
 $('lf').onsubmit=async e=>{e.preventDefault();const j=await api({a:'login',email:$('e').value,password:$('p').value});if(j.token){T=sessionStorage.t=j.token;ld()}else if(!j.err)alert('Incorrect email or password')};
+const sm=s=>s=='paid'||s=='completed'?'confirmed':s=='cancelled'||s=='expired'?'cancelled':s;
 function rs(){$('sx').innerHTML=(PR.seasons||[]).map((s,i)=>`<div class="r">${esc(s.l)}: ${s.f} to ${s.t} - AED ${s.p} per night <button onclick="ds(${i})">Delete</button></div>`).join('')||'<small>None yet</small>'}
-async function ld(){const j=await api({a:'list'});if(!j.rows)return;$('lf').hidden=true;$('app').hidden=false;PR=j.pricing;$('w').value=PR.w;$('we').value=PR.we;rs();
-$('t').innerHTML='<tr><td>Status<td>Guest<td>Dates<td>Total<td></tr>'+j.rows.map(r=>`<tr><td>${esc(r.status)}<td>${esc(r.name||r.note||'')} ${esc(r.phone||'')}<td>${r.check_in} to ${r.check_out}<td>${r.total||''}<td>${['paid','blocked','pending'].includes(r.status)?`<button onclick="cn('${r.id}')">Cancel</button>`:''}</tr>`).join('')}
+function dr(){const q=$('q').value.trim().toLowerCase(),qd=q.replace(/\D/g,''),f=$('f').value;
+const rows=R.filter(r=>(f=='all'||sm(r.status)==f)&&(!q||[r.name,r.phone,r.ref,r.note].some(x=>String(x||'').toLowerCase().includes(q))||(qd.length>3&&String(r.phone||'').replace(/\D/g,'').includes(qd))));
+$('cnt').textContent=rows.length+' shown';
+$('t').innerHTML='<tr><td>Ref<td>Status<td>Guest<td>Dates<td>Total<td></tr>'+rows.map(r=>`<tr><td>${esc(r.ref||'')}<td class="s-${sm(r.status)}">${sm(r.status)}<td>${esc(r.name||r.note||'')} ${esc(r.phone||'')}<td>${r.check_in} to ${r.check_out}<td>${r.total||''}<td>${['paid','blocked','pending'].includes(r.status)?`<button onclick="cn('${r.id}')">Cancel</button>`:''}</tr>`).join('')}
+async function ld(){const j=await api({a:'list'});if(!j.rows)return;$('lf').hidden=true;$('app').hidden=false;PR=j.pricing;R=j.rows;$('w').value=PR.w;$('we').value=PR.we;rs();dr()}
 async function sv(){PR.w=$('w').value;PR.we=$('we').value;PR.deposit=0;PR.seasons=PR.seasons||[];await api({a:'price',p:PR});rs();alert('Saved')}
 async function as(){const f=$('sf').value,t=$('st').value,p=+$('sp').value;if(!f||!t||!p||t<f)return alert('Enter the dates (first night to last night) and the price');(PR.seasons=PR.seasons||[]).push({l:$('sn').value||'Special dates',f,t,p});await sv();$('sn').value=$('sf').value=$('st').value=$('sp').value=''}
 async function ds(i){if(confirm('Delete this special price?')){PR.seasons.splice(i,1);await sv()}}
